@@ -124,6 +124,7 @@ class _BluetoothClassState extends State<BluetoothClass>
       items.add(DropdownMenuItem(
         child: Text(Provider.of<MyAppState>(context, listen: false).device?.name ?? 'No Name Available'),
       ));
+      items.remove(Provider.of<MyAppState>(context, listen: false).device);
     }
     if (_deviceList.isEmpty) {
       items.add(const DropdownMenuItem(
@@ -131,9 +132,6 @@ class _BluetoothClassState extends State<BluetoothClass>
       ));
     } else {
       for (var device in _deviceList) {
-        if(device == Provider.of<MyAppState>(context, listen: false).device){
-          continue;
-        }
         items.add(DropdownMenuItem(
           value: device,
           child: Text(
@@ -178,6 +176,7 @@ class _BluetoothClassState extends State<BluetoothClass>
     _connection?.dispose();
     Provider.of<MyAppState>(context, listen: false).setPressed(false);
     Provider.of<MyAppState>(context, listen: false).setConnected(false);
+    Provider.of<MyAppState>(context, listen: false).deviceConnected(null);
   }
 
   Future show(
