@@ -1,7 +1,11 @@
 import 'package:english_words/english_words.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_bluetooth_serial/flutter_bluetooth_serial.dart';
 import 'package:provider/provider.dart';
+
+import 'Design.dart';
+import 'Widgets.dart';
 
 void main() {
   runApp(const MyApp());
@@ -31,26 +35,35 @@ class MyApp extends StatelessWidget {
 * From what I could understand this shit works as a Singleton in some apps
 * (Basically it handles the global variables for your app I thin)
 */
-class MyAppState extends ChangeNotifier {
-  var current = WordPair.random();
+class MyAppState extends ChangeNotifier with WidgetsBindingObserver {
+  BluetoothConnection? connection;
+  BluetoothDevice? device;
+  bool _connected = false;
+  bool _pressed = false;
 
-  void getNext() {
-    current = WordPair.random();
+  bool get connected => _connected;
+  bool get pressed => _pressed;
+
+  void setConnected(bool value) {
+    _connected = value;
     notifyListeners();
   }
 
-  // ↓ Add the code below.
-  var favorites = <WordPair>[];
+  void setPressed(bool value) {
+    _pressed = value;
+    notifyListeners();
+  }
 
-  void toggleFavorite() {
-    if (favorites.contains(current)) {
-      favorites.remove(current);
-    } else {
-      favorites.add(current);
-    }
+  void connect(BluetoothConnection connection){
+    this.connection = connection;
+  }
+
+  void deviceConnected(BluetoothDevice? device){
+    this.device = device;
     notifyListeners();
   }
 }
+
 
 /*I think this is kinda like the main container, like a Scene in javafx or something like that
 * Apparently making it a "StatefulWidget" makes it so you can have some features of the state
@@ -73,7 +86,10 @@ class _MyHomePageState extends State<MyHomePage> {
         page = GeneratorPage();
         break;
       case 1:
-        page = FavoriteWords();
+        page = BluetoothClass();
+        break;
+      case 2:
+        page = Placeholder();
         break;
       default:
         throw UnimplementedError('no widget for $selectedIndex');
@@ -81,23 +97,24 @@ class _MyHomePageState extends State<MyHomePage> {
     /*I'm not a huge fan of this shit, fortunately android studio makes it look pretty.
     * Even tho it looks like shit there we have some kind of "Widget state" where you can control
     * which view is being shown through the NavigationRail type, it's pretty cool*/
-    return Builder(
-      builder: (context) {
+    return LayoutBuilder(
+      builder: (context, constraints) {
         return Scaffold(
           body: Row(
             children: [
               SafeArea(
                 child: NavigationRail(
-                  extended: false,
+                  extended: constraints.maxWidth > 600,
                   destinations: const [
                     NavigationRailDestination(
                       icon: Icon(Icons.home),
                       label: Text('Home'),
                     ),
                     NavigationRailDestination(
-                      icon: Icon(Icons.favorite),
-                      label: Text('Favorites'),
+                      icon: Icon(Icons.bluetooth),
+                      label: Text('Bluetooth test'),
                     ),
+                    NavigationRailDestination(icon: Icon(Icons.message), label: Text("Comunicar"))
                   ],
                   selectedIndex: selectedIndex,
                   onDestinationSelected: (value) {
@@ -117,123 +134,6 @@ class _MyHomePageState extends State<MyHomePage> {
           ),
         );
       }
-    );
-  }
-}
-
-/*This is like a component in angular, here you do some shit with it's own view
-* It's literally a view object in a MVC*/
-class GeneratorPage extends StatelessWidget {
-  @override
-  Widget build(BuildContext context) {
-    var appState = context.watch<MyAppState>();
-    var pair = appState.current;
-
-    IconData icon;
-    if (appState.favorites.contains(pair)) {
-      icon = Icons.favorite;
-    } else {
-      icon = Icons.favorite_border;
-    }
-
-    return Center(
-      child: Column(
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: [
-          BigCard(pair: pair),
-          SizedBox(height: 10),
-          Row(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              ElevatedButton.icon(
-                onPressed: () {
-                  appState.toggleFavorite();
-                },
-                icon: Icon(icon),
-                label: Text('Like'),
-              ),
-              SizedBox(width: 10),
-              ElevatedButton(
-                onPressed: () {
-                  appState.getNext();
-                },
-                child: Text('Next'),
-              ),
-            ],
-          ),
-        ],
-      ),
-    );
-  }
-}
-
-/*This is just so you don't have huge stuff and you can have like your own component
-* of some element (like a text in this case)
-* */
-class BigCard extends StatelessWidget {
-  const BigCard({
-    super.key,
-    required this.pair,
-  });
-
-  final WordPair pair;
-
-  @override
-  Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-
-    final style = theme.textTheme.displayMedium!.copyWith(
-      color: theme.colorScheme.onBackground,
-    );
-    return Card(
-      color: theme.colorScheme.background,
-      child: Padding(
-        padding: const EdgeInsets.all(20),
-        child: Text(pair.asLowerCase, style: style),
-      ),
-    );
-  }
-}
-
-/*Another class. Another view
-* This is in order to handle the favorite words of the state class, it's cool and shi*/
-class FavoriteWords extends StatelessWidget{
-  @override
-  Widget build(BuildContext context) {
-    var appState = context.watch<MyAppState>();
-    var favorites = appState.favorites;
-
-    return Center(
-      child: Column(
-        mainAxisAlignment: MainAxisAlignment.center, //This is to center your column to the vertical (idk if it affects horizontal too)
-        children: [
-          const MsgBlock(),
-          SizedBox(height: 10,), //This is some kind of margin on y (and I guess you can do it on x too).
-          for(var msg in favorites)
-            Text(msg.asLowerCase)
-        ],
-      ),
-    );
-  }
-
-}
-
-/*The same, this is just to style a bit*/
-class MsgBlock extends StatelessWidget {
-  const MsgBlock({
-    super.key,
-  });
-
-
-  @override
-  Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    return Card(
-      color: theme.colorScheme.background,
-        child: Padding(
-          padding: const EdgeInsets.all(12.0),
-          child: Text('Messages:', style: theme.textTheme.displayMedium,),
-        )
     );
   }
 }
