@@ -1,5 +1,6 @@
 /*This is like a component in angular, here you do some shit with it's own view
   * It's literally a view object in a MVC*/
+import 'dart:async';
 import 'dart:convert';
 
 import 'package:flutter/cupertino.dart';
@@ -205,74 +206,74 @@ class _BluetoothClassState extends State<BluetoothClass> with WidgetsBindingObse
           appBar: AppBar(title: const Center(child: Text("Bluetooth"))),
           backgroundColor: Colors.purpleAccent,
           body:
-              Column(
-                children: [
-                  const SizedBox(height: 20),
-                  const Center(
-                    child: Column(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      //This is to center your column to the vertical (idk if it affects horizontal too)
-                      children: [
-                        MsgBlock(),
-                        SizedBox(
-                          height: 10,
-                        ),
-                        //This is some kind of margin on y (and I guess you can do it on x too).
-                      ],
+          Column(
+            children: [
+              const SizedBox(height: 20),
+              const Center(
+                child: Column(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  //This is to center your column to the vertical (idk if it affects horizontal too)
+                  children: [
+                    MsgBlock(),
+                    SizedBox(
+                      height: 10,
                     ),
-                  ),
-                  Padding(
-                      padding: const EdgeInsets.only(top: 8.0),
-                      child: Row(
-                          mainAxisAlignment: MainAxisAlignment.spaceAround,
-                          children: <Widget>[
-                            const Text('Device',
-                                style: TextStyle(
-                                  fontWeight: FontWeight.bold,
-                                )),
-                            SizedBox(
-                              height: 50,
-                              child: DropdownButton(
-                                  items: _getDeviceItems(),
-                                  onChanged: (value) =>
-                                      setState(() => _device = value!),
-                                  value: appState.connected ? appState.device : _device
-                              ),
-                            ),
-                          ]
-                      )
-                  ),
-                  Center(
-                      child: Column(
-                          children: [
-                            ElevatedButton(
-                                onPressed: appState.pressed
-                                    ? null
-                                    : appState.connected
-                                    ? _disconnect
-                                    : _connect,
-                                child: Text(
-                                    appState.connected ? 'Disconnect' : 'Connect')
-                            )
-                          ]
-                      )
-                  ),
-                  Expanded(child: Padding(
-                      padding: const EdgeInsets.all(8.0),
-                      child: Center(
-                        child: ConnectionS(connected: appState.connected),
-                      )
+                    //This is some kind of margin on y (and I guess you can do it on x too).
+                  ],
+                ),
+              ),
+              Padding(
+                  padding: const EdgeInsets.only(top: 8.0),
+                  child: Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceAround,
+                      children: <Widget>[
+                        const Text('Device',
+                            style: TextStyle(
+                              fontWeight: FontWeight.bold,
+                            )),
+                        SizedBox(
+                          height: 50,
+                          child: DropdownButton(
+                              items: _getDeviceItems(),
+                              onChanged: (value) =>
+                                  setState(() => _device = value!),
+                              value: appState.connected ? appState.device : _device
+                          ),
+                        ),
+                      ]
                   )
-                  ),
-                  Expanded(child: Center(
-                      child:
-                      Text(appState.connected ? 'Conectado a: ${appState.device
-                          ?.name}' : 'No conectado', style: TextStyle(fontSize: 20,
-                          color: appState.connected ? Colors.black : Colors.red))
+              ),
+              Center(
+                  child: Column(
+                      children: [
+                        ElevatedButton(
+                            onPressed: appState.pressed
+                                ? null
+                                : appState.connected
+                                ? _disconnect
+                                : _connect,
+                            child: Text(
+                                appState.connected ? 'Disconnect' : 'Connect')
+                        )
+                      ]
                   )
+              ),
+              Expanded(child: Padding(
+                  padding: const EdgeInsets.all(8.0),
+                  child: Center(
+                    child: ConnectionS(connected: appState.connected),
                   )
-                ],
               )
+              ),
+              Expanded(child: Center(
+                  child:
+                  Text(appState.connected ? 'Conectado a: ${appState.device
+                      ?.name}' : 'No conectado', style: TextStyle(fontSize: 20,
+                      color: appState.connected ? Colors.black : Colors.red))
+              )
+              )
+            ],
+          )
       );
     });
   }
@@ -290,47 +291,88 @@ class CommunicateBluetooth extends StatefulWidget {
 }
 
 class _communicateStateClass extends State<CommunicateBluetooth> with AutomaticKeepAliveClientMixin {
+  List<String> messages = [];
+  Stream<String>? messageStream;
+  StreamSubscription<String>? messageSubscription;
+
   @override
   Widget build(BuildContext context) {
     super.build(context);
     var appState = context.watch<MyAppState>();
-
-    appState.connection?.input?.listen((Uint8List data) {
-      print('Data incoming: ${ascii.decode(data)}');
-    });
-
-    // TODO: implement build
+    messageStream = appState.connection?.input?.transform(Uint8ListToStringTransformer()).asBroadcastStream();
     return Builder(builder: (context){
       return Scaffold(
-        appBar: AppBar(title: Text(!appState.connected ? "No estas conectado!" : "Conectado a: ${appState.device?.name}"), centerTitle: true, backgroundColor: Colors.white,),
-        backgroundColor: Colors.purpleAccent,
-        body:
-        const Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Center(
-                child: Column(
-                    children: [
-                      SizedBox(
-                        width: 250,
-                        child: TextField(
-                          obscureText: false,
-                          decoration: InputDecoration(
-                            border: OutlineInputBorder(),
-                            labelText: 'Mensaje',
-                            filled: true,
-                            fillColor: Colors.white,
-                          ),
-                        ),
-                      )
-                    ]
-                )
-            ),
-          ],
-        ),
+          appBar: AppBar(title: Text(!appState.connected ? "No estas conectado!" : "Conectado a: ${appState.device?.name}"), centerTitle: true, backgroundColor: Colors.white,),
+          backgroundColor: Colors.purpleAccent,
+          body: Column(
+            children: [
+              StreamBuilder<String>(
+                stream: messageStream,
+                builder: (BuildContext context, AsyncSnapshot<String> snapshot) {
+                  if (snapshot.hasData) {
+                    messages.add(snapshot.data!);
+                  }
+                  return Center(
+                    child: SizedBox(
+                      height: 250, // Adjust this value as needed
+                      child: Card(
+                          child: ListView.builder(
+                            itemCount: messages.length,
+                            itemBuilder: (context, index) {
+                              return Padding(
+                                padding: const EdgeInsets.symmetric(vertical: 2.0), // Adjust this value as needed
+                                child: ListTile(
+                                  title: Text(messages[index]),
+                                ),
+                              );
+                            },
+                          )
+                      ),
+                    ),
+                  );
+                },
+              ),
+              Expanded(
+                child: SizedBox(
+                  height: 70,
+                  width: 200,
+                  child: TextField(
+                    onSubmitted: (value) {
+                      appState.connection?.output.add(utf8.encode(value));
+                    },
+                    decoration: const InputDecoration(
+                      hintText: 'Escribe un mensaje',
+                      contentPadding: EdgeInsets.all(10),
+                      filled: true,
+                      fillColor: Colors.white,
+                    ),
+                  ),
+                ),
+              )
+            ],
+          ),
       );
     });
   }
+
   @override
   bool get wantKeepAlive => true;
+}
+
+class Uint8ListToStringTransformer extends StreamTransformerBase<Uint8List, String> {
+  final _buffer = StringBuffer();
+
+  @override
+  Stream<String> bind(Stream<Uint8List> stream) {
+    return stream.transform(StreamTransformer<Uint8List, String>.fromHandlers(
+      handleData: (data, sink) {
+        var str = utf8.decode(data);
+        _buffer.write(str);
+        if (_buffer.toString().endsWith('\n')) {
+          sink.add(_buffer.toString());
+          _buffer.clear();
+        }
+      },
+    ));
+  }
 }
