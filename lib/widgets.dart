@@ -1,15 +1,20 @@
 /*This is like a component in angular, here you do some shit with it's own view
   * It's literally a view object in a MVC*/
+import 'dart:convert';
+
 import 'package:flutter/cupertino.dart';
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_bluetooth_serial/flutter_bluetooth_serial.dart';
 import 'package:provider/provider.dart';
 
-import 'Design.dart';
+import 'design.dart';
 import 'main.dart';
 
 class GeneratorPage extends StatelessWidget {
+  const GeneratorPage({super.key});
+
   @override
   Widget build(BuildContext context) {
     var appState = context.watch<MyAppState>();
@@ -22,7 +27,7 @@ class GeneratorPage extends StatelessWidget {
           const BigCard(),
           const SizedBox(height: 10),
           Text(
-            "App desarrollada por Leonardo",
+            "App desarrollada por Leo",
             style: theme.textTheme.labelLarge,
           ),
         ],
@@ -40,9 +45,7 @@ class BluetoothClass extends StatefulWidget {
   State<BluetoothClass> createState() => _BluetoothClassState();
 }
 
-class _BluetoothClassState extends State<BluetoothClass>
-    with WidgetsBindingObserver {
-  final GlobalKey<ScaffoldState> _globalKey = new GlobalKey();
+class _BluetoothClassState extends State<BluetoothClass> with WidgetsBindingObserver, AutomaticKeepAliveClientMixin {
   FlutterBluetoothSerial bluetooth = FlutterBluetoothSerial.instance;
 
   var _deviceList = <BluetoothDevice>[] = [];
@@ -54,12 +57,12 @@ class _BluetoothClassState extends State<BluetoothClass>
   void initState() {
     super.initState();
     bluetoothConnectionState();
-    WidgetsBinding.instance?.addObserver(this);
+    WidgetsBinding.instance.addObserver(this);
   }
 
   @override
   void dispose() {
-    WidgetsBinding.instance?.removeObserver(this);
+    WidgetsBinding.instance.removeObserver(this);
     super.dispose();
   }
 
@@ -79,7 +82,9 @@ class _BluetoothClassState extends State<BluetoothClass>
     try {
       devices = await bluetooth.getBondedDevices();
     } on PlatformException {
-      print("Error");
+      if (kDebugMode) {
+        print("Error");
+      }
     }
 
     //Know when is connected and disconnected
@@ -105,7 +110,9 @@ class _BluetoothClassState extends State<BluetoothClass>
           });
           break;
         default:
-          print(state);
+          if (kDebugMode) {
+            print(state);
+          }
       }
     });
 
@@ -120,23 +127,11 @@ class _BluetoothClassState extends State<BluetoothClass>
 
   List<DropdownMenuItem<BluetoothDevice>> _getDeviceItems() {
     List<DropdownMenuItem<BluetoothDevice>> items = [];
-    if(Provider.of<MyAppState>(context, listen: false).connected){
-      items.add(DropdownMenuItem(
-        child: Text(Provider.of<MyAppState>(context, listen: false).device?.name ?? 'No Name Available'),
-      ));
-      items.remove(Provider.of<MyAppState>(context, listen: false).device);
-    }
-    if (_deviceList.isEmpty) {
-      items.add(const DropdownMenuItem(
-        child: Text('NONE'),
-      ));
-    } else {
-      for (var device in _deviceList) {
+    if (_deviceList.isNotEmpty) {
+      for (BluetoothDevice device in _deviceList) {
         items.add(DropdownMenuItem(
           value: device,
-          child: Text(
-            device.name ?? 'No Name Available',
-          ),
+          child: Text(device.name ?? 'No Name Available'),
         ));
       }
     }
@@ -148,7 +143,9 @@ class _BluetoothClassState extends State<BluetoothClass>
   void _connect() {
     if (_device == null) {
       show('No device selected');
-      print("No device connected");
+      if (kDebugMode) {
+        print("No device connected");
+      }
     } else {
       bluetooth.isEnabled.then((isConnected) {
         if (isConnected!) {
@@ -156,9 +153,12 @@ class _BluetoothClassState extends State<BluetoothClass>
             BluetoothConnection.toAddress(_device?.address).then((value) {
               _connection = value;
               Provider.of<MyAppState>(context, listen: false).setPressed(false);
-              Provider.of<MyAppState>(context, listen: false).setConnected(true);
-              Provider.of<MyAppState>(context, listen: false).connect(_connection!);
-              Provider.of<MyAppState>(context, listen: false).deviceConnected(_device);
+              Provider.of<MyAppState>(context, listen: false).setConnected(
+                  true);
+              Provider.of<MyAppState>(context, listen: false).connect(
+                  _connection!);
+              Provider.of<MyAppState>(context, listen: false).deviceConnected(
+                  _device);
               show('Connected to ${_device?.name}');
             }).catchError((error) {
               show('Error: $error');
@@ -172,17 +172,18 @@ class _BluetoothClassState extends State<BluetoothClass>
   }
 
   void _disconnect() {
-    _connection = Provider.of<MyAppState>(context, listen: false).connection;
+    _connection = Provider
+        .of<MyAppState>(context, listen: false)
+        .connection;
     _connection?.dispose();
     Provider.of<MyAppState>(context, listen: false).setPressed(false);
     Provider.of<MyAppState>(context, listen: false).setConnected(false);
     Provider.of<MyAppState>(context, listen: false).deviceConnected(null);
   }
 
-  Future show(
-      String message, {
-        Duration duration = const Duration(seconds: 3),
-      }) async {
+  Future show(String message, {
+    Duration duration = const Duration(seconds: 3),
+  }) async {
     await Future.delayed(const Duration(milliseconds: 100));
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
@@ -196,17 +197,17 @@ class _BluetoothClassState extends State<BluetoothClass>
 
   @override
   Widget build(BuildContext context) {
+    super.build(context);
     var appState = context.watch<MyAppState>();
 
     return Builder(builder: (context) {
       return Scaffold(
-          key: _globalKey,
           appBar: AppBar(title: const Center(child: Text("Bluetooth"))),
           backgroundColor: Colors.purpleAccent,
-          body: Container(
-              child: Column(
+          body:
+              Column(
                 children: [
-                  SizedBox(height: 20),
+                  const SizedBox(height: 20),
                   const Center(
                     child: Column(
                       mainAxisAlignment: MainAxisAlignment.center,
@@ -221,7 +222,7 @@ class _BluetoothClassState extends State<BluetoothClass>
                     ),
                   ),
                   Padding(
-                      padding: EdgeInsets.only(top: 8.0),
+                      padding: const EdgeInsets.only(top: 8.0),
                       child: Row(
                           mainAxisAlignment: MainAxisAlignment.spaceAround,
                           children: <Widget>[
@@ -229,45 +230,107 @@ class _BluetoothClassState extends State<BluetoothClass>
                                 style: TextStyle(
                                   fontWeight: FontWeight.bold,
                                 )),
-                            DropdownButton(
-                                items: _getDeviceItems(),
-                                onChanged: (value) =>
-                                    setState(() => _device = value!),
-                                value: _device),
+                            SizedBox(
+                              height: 50,
+                              child: DropdownButton(
+                                  items: _getDeviceItems(),
+                                  onChanged: (value) =>
+                                      setState(() => _device = value!),
+                                  value: appState.connected ? appState.device : _device
+                              ),
+                            ),
                           ]
                       )
                   ),
                   Center(
                       child: Column(
-                        children: [
-                          ElevatedButton(
-                              onPressed: appState.pressed
-                                  ? null
-                                  : appState.connected
-                                  ? _disconnect
-                                  : _connect,
-                              child: Text(appState.connected ? 'Disconnect' : 'Connect')
-                          )
-                        ]
+                          children: [
+                            ElevatedButton(
+                                onPressed: appState.pressed
+                                    ? null
+                                    : appState.connected
+                                    ? _disconnect
+                                    : _connect,
+                                child: Text(
+                                    appState.connected ? 'Disconnect' : 'Connect')
+                            )
+                          ]
                       )
                   ),
                   Expanded(child: Padding(
-                    padding: const EdgeInsets.all(8.0),
-                    child: Center(
-                      child: ConnectionS(connected: appState.connected),
-                    )
+                      padding: const EdgeInsets.all(8.0),
+                      child: Center(
+                        child: ConnectionS(connected: appState.connected),
+                      )
                   )
                   ),
                   Expanded(child: Center(
-                    child:
-                        Text(appState.connected ? 'Conectado a: ${appState.device?.name}' : 'No conectado', style: TextStyle(fontSize: 20, color: appState.connected ? Colors.black : Colors.red))
+                      child:
+                      Text(appState.connected ? 'Conectado a: ${appState.device
+                          ?.name}' : 'No conectado', style: TextStyle(fontSize: 20,
+                          color: appState.connected ? Colors.black : Colors.red))
                   )
                   )
                 ],
-              ),
-          )
+              )
       );
     });
   }
+
+  @override
+  bool get wantKeepAlive => true;
 }
 
+class CommunicateBluetooth extends StatefulWidget {
+  const CommunicateBluetooth({super.key});
+
+  @override
+  State<StatefulWidget> createState() => _communicateStateClass();
+
+}
+
+class _communicateStateClass extends State<CommunicateBluetooth> with AutomaticKeepAliveClientMixin {
+  @override
+  Widget build(BuildContext context) {
+    super.build(context);
+    var appState = context.watch<MyAppState>();
+
+    appState.connection?.input?.listen((Uint8List data) {
+      print('Data incoming: ${ascii.decode(data)}');
+    });
+
+    // TODO: implement build
+    return Builder(builder: (context){
+      return Scaffold(
+        appBar: AppBar(title: Text(!appState.connected ? "No estas conectado!" : "Conectado a: ${appState.device?.name}"), centerTitle: true, backgroundColor: Colors.white,),
+        backgroundColor: Colors.purpleAccent,
+        body:
+        const Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Center(
+                child: Column(
+                    children: [
+                      SizedBox(
+                        width: 250,
+                        child: TextField(
+                          obscureText: false,
+                          decoration: InputDecoration(
+                            border: OutlineInputBorder(),
+                            labelText: 'Mensaje',
+                            filled: true,
+                            fillColor: Colors.white,
+                          ),
+                        ),
+                      )
+                    ]
+                )
+            ),
+          ],
+        ),
+      );
+    });
+  }
+  @override
+  bool get wantKeepAlive => true;
+}

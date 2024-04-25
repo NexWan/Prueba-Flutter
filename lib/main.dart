@@ -1,11 +1,8 @@
-import 'package:english_words/english_words.dart';
-import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bluetooth_serial/flutter_bluetooth_serial.dart';
 import 'package:provider/provider.dart';
 
-import 'Design.dart';
-import 'Widgets.dart';
+import 'widgets.dart';
 
 void main() {
   runApp(const MyApp());
@@ -24,7 +21,7 @@ class MyApp extends StatelessWidget {
           useMaterial3: true,
           colorScheme: ColorScheme.fromSeed(seedColor: Colors.purpleAccent),
         ),
-        home: MyHomePage(),
+        home: const MyHomePage(),
       ),
     );
   }
@@ -89,7 +86,7 @@ class _MyHomePageState extends State<MyHomePage> {
         page = BluetoothClass();
         break;
       case 2:
-        page = Placeholder();
+        page = CommunicateBluetooth();
         break;
       default:
         throw UnimplementedError('no widget for $selectedIndex');

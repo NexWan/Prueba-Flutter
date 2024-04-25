@@ -1,6 +1,4 @@
 /*The same, this is just to style a bit*/
-import 'package:english_words/english_words.dart';
-import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 
 class MsgBlock extends StatelessWidget {
